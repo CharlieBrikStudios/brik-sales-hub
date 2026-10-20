@@ -1,0 +1,6 @@
+# Readable copies never go in this repo: only the sealed files in m/
+db/
+app/
+*.plain
+*.snapshot.json
+node_modules/

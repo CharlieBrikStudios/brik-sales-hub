@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Brik Sales Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300..600&family=Instrument+Sans:wght@400..700&display=swap">
+<style>
+:root{--ground:#F1EEEA;--paper:#FFFFFF;--ink:#1C1B19;--muted:#6B665E;--rule:#1C1B19;--rust:#A8553A;--rust-ink:#FFFFFF;--bad:#B23A2B;
+ --serif:"Newsreader",Georgia,"Times New Roman",serif;--sans:"Instrument Sans","Helvetica Neue",Arial,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ground:#171614;--paper:#211F1C;--ink:#EEEAE3;--muted:#A8A196;--rule:#EEEAE3;--rust:#D27556;--rust-ink:#1C1B19;--bad:#F07362;color-scheme:dark}}
+:root[data-theme="dark"]{--ground:#171614;--paper:#211F1C;--ink:#EEEAE3;--muted:#A8A196;--rule:#EEEAE3;--rust:#D27556;--rust-ink:#1C1B19;--bad:#F07362;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--ink);font:16px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+main{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:40px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.box{width:min(420px,100%);display:grid;gap:18px}
+.mark{font-weight:600;font-size:13px;letter-spacing:.32em;text-transform:uppercase}
+h1{margin:0;font:400 40px/1.05 var(--serif);letter-spacing:-.01em}
+form{display:grid;gap:10px}
+label{font-size:13px;color:var(--muted)}
+input{height:46px;padding:0 14px;border:1px solid var(--rule);border-radius:0;background:var(--paper);color:var(--ink);font:16px var(--sans);letter-spacing:.06em;width:100%}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--rust);outline-offset:2px}
+button{height:46px;border:0;border-radius:0;background:var(--rust);color:var(--rust-ink);font:600 15px var(--sans);letter-spacing:.02em;cursor:pointer}
+button[disabled]{opacity:.6;cursor:progress}
+.msg{min-height:1.5em;font-size:14px;color:var(--bad)}
+.msg.ok{color:var(--muted)}
+.lock{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.lock svg{width:15px;height:15px;flex:none}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+ <div class="box">
+  <div class="mark">Brik Studios</div>
+  <h1>Sales Hub</h1>
+  <form id="f" autocomplete="off" hidden>
+   <label for="pw">Staff passcode</label>
+   <input id="pw" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+   <div class="msg" id="msg" role="alert"></div>
+   <button id="go" type="submit">Open the hub</button>
+  </form>
+  <div class="msg ok" id="note" role="status">Checking this browser…</div>
+  <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Internal use only. Do not share with clients.</div>
+ </div>
+</main>
+<script>
+(async()=>{
+ const $=s=>document.querySelector(s),f=$('#f'),msg=$('#msg'),note=$('#note'),go=$('#go');
+ const q=new URLSearchParams(location.search);
+ const say=t=>{note.textContent=t;note.hidden=!t};
+ const ask=t=>{say('');msg.textContent=t||'';f.hidden=false;$('#pw').focus()};
+ if(!('serviceWorker' in navigator)||!window.crypto||!crypto.subtle||!window.indexedDB){say('This browser cannot open the hub. Use an up-to-date Chrome, Edge, Safari or Firefox, and not a private window.');return}
+ const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('brik-vault',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+ const idbDo=async(mode,fn)=>{const db=await idb();try{return await new Promise((res,rej)=>{const t=db.transaction('k',mode);const r=fn(t.objectStore('k'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error)})}finally{db.close()}};
+ const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+ let reg;try{reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready}catch(e){say('This browser cannot open the hub here (it blocks the secure storage it needs). Try Chrome, Edge or Safari, not in a private window.');return}
+ const tell=m=>{try{(navigator.serviceWorker.controller||reg.active)?.postMessage(m)}catch(_){}};
+ const enter=()=>{say('Opening the hub…');location.replace('app/'+location.hash)};
+ if(q.has('lock')){try{await idbDo('readwrite',s=>s.delete('priv'))}catch(_){}tell('lock');try{localStorage.removeItem('hub.ok');sessionStorage.removeItem('brikAvail')}catch(_){}
+  history.replaceState(null,'',location.pathname);ask('');say('Locked on this device. The passcode is needed to open the hub again.');return}
+ let have=null;try{have=await idbDo('readonly',s=>s.get('priv'))}catch(_){}
+ if(have&&!q.has('changed')){enter();return}
+ ask(q.has('changed')?'The passcode has changed. Ask Charlie for the new one.':'');
+ f.addEventListener('submit',async e=>{e.preventDefault();msg.textContent='';go.disabled=true;go.textContent='Unlocking…';
+  try{
+   const v=await (await fetch('vault.json',{cache:'no-cache'})).json();
+   const pw=$('#pw').value.trim().toLowerCase();
+   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+   const kek=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(v.salt),iterations:v.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+   let pk8;try{pk8=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(v.iv)},kek,b64(v.priv))}catch(_){throw new Error('pw')}
+   const key=await crypto.subtle.importKey('pkcs8',pk8,{name:'RSA-OAEP',hash:'SHA-256'},false,['decrypt']);
+   await idbDo('readwrite',s=>s.put(key,'priv'));tell('key');
+   try{localStorage.setItem('hub.ok','1');sessionStorage.setItem('brikAvail','1')}catch(_){}
+   enter();
+  }catch(err){go.disabled=false;go.textContent='Open the hub';
+   msg.textContent=err&&err.message==='pw'?'That passcode is not right. Ask Charlie for the current one.':'Could not reach the hub just now. Check the connection and try again.';$('#pw').select()}});
+})();
+</script>
+</body>
+</html>
