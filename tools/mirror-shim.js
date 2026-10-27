@@ -15,6 +15,6 @@
  const docRef=(c,id)=>({id,async get(){await ready;return snapD(c,id)},onSnapshot(f){return sub({c,id,f})},set:ro,update:ro,delete:ro});
  const colRef=c=>{const q={doc:id=>docRef(c,id),async get(){await ready;return snapC(c)},onSnapshot(f){return sub({c,f})},add:ro,where:()=>q,orderBy:()=>q,limit:()=>q};return q};
  const db={doc(p){const s=String(p).split('/');return docRef(s[0],s[1])},collection:colRef};
- const user={isOwner:()=>false,canEdit:()=>false,can:()=>false,async id(){return 'github-copy'},async me(){return{id:'github-copy',name:''}},async profiles(){return{}},async search(){return[]}};
+ const user={isOwner:()=>false,canEdit:()=>false,can:()=>false,async id(){return 'github-copy'},async me(){let w='';try{w=localStorage.getItem('hub.who')||''}catch(_){}return{id:'github-copy',name:w}},async profiles(){return{}},async search(){return[]}};
  window.claude={use:async k=>k==='db'?db:k==='user'?user:null};
 })();
